@@ -5,6 +5,7 @@ resource "aws_kms_key" "secrets" {
 resource "aws_secretsmanager_secret" "secret" {
   recovery_window_in_days = 0
   kms_key_id              = aws_kms_key.secrets.arn
+  name                    = "eso-secret"
 }
 
 resource "aws_secretsmanager_secret_version" "secret" {
