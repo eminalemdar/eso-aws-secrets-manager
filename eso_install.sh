@@ -158,5 +158,5 @@ EOF
 
 }
 
-#install
+install
 permissions
