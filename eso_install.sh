@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 : '
 The following script has two functions with different actions
 Install function installs the required Helm Chart
@@ -107,7 +108,7 @@ EOF
   SECRETS_MANAGER_ARN=$(terraform output -raw secrets_manager_arn)
   KMS_KEY_ARN=$(terraform output -raw kms_key_arn)
 
-  read -r -d '' SECRET_STORE_POLICY <<POLICY
+  read -r -d '' SECRET_STORE_POLICY <<EOF
   {
     "Version": "2012-10-17",
     "Statement": [
@@ -130,7 +131,7 @@ EOF
       }
     ]
   }
-POLICY
+EOF
   echo "${SECRET_STORE_POLICY}" > policy.json
   
   ESO_IAM_POLICY="eso_secrets_manager_policy"
@@ -139,13 +140,13 @@ POLICY
   POLICY_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${ESO_IAM_POLICY}"
 
   # Attaching the policy to the IAM Role.
-  while IFS= read -r POLICY_ARN; do
-      echo -n "Attaching ${POLICY_ARN} ... "
-      aws iam attach-role-policy \
-          --role-name "${ESO_IAM_ROLE}" \
-          --policy-arn "${POLICY_ARN}"
-      echo "ok."
-  done
+  echo -n "Attaching ${POLICY_ARN} ..."
+
+  aws iam attach-role-policy \
+      --role-name "${ESO_IAM_ROLE}" \
+      --policy-arn "${POLICY_ARN}"
+
+  echo "Attached."
 
   echo "===================================================="
   echo "Associating the Role with the Service Account"
@@ -157,5 +158,5 @@ POLICY
 
 }
 
-install
+#install
 permissions
