@@ -9,7 +9,7 @@ declare AWS_REGION="eu-west-1"
 declare EKS_CLUSTER_NAME="eso-demo"
 declare ESO_SYSTEM_NAMESPACE="external-secrets"
 
-cleanup(){
+cleanup_eso(){
 
   echo "===================================================="
   echo "Creating required Environment Variables."
@@ -62,4 +62,4 @@ cleanup(){
   terraform destroy --auto-approve
 }
 
-cleanup
+cleanup_eso

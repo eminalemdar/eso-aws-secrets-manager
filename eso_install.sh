@@ -19,7 +19,7 @@ declare AWS_REGION="eu-west-1"
 declare EKS_CLUSTER_NAME="eso-demo"
 declare ESO_SYSTEM_NAMESPACE="external-secrets"
 
-install(){
+install_eso(){
   
   # Setting the Environment variables for Service Controller Helm Chart
   declare -i HELM_EXPERIMENTAL_OCI=1 # Only required for Helm below v3.8.0
@@ -40,7 +40,7 @@ install(){
 #####################################################################################################################
 #####################################################################################################################
 
-permissions(){
+permissions_eso(){
 
   echo "===================================================="
   echo "Creating IRSA for EKS Cluster"
@@ -76,26 +76,25 @@ EOF
   echo "===================================================="
 
   # Creating IAM Trust Policy. 
-  read -r -d '' TRUST_RELATIONSHIP <<EOF
-  {
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Principal": {
-          "Federated": "arn:aws:iam::${AWS_ACCOUNT_ID}:oidc-provider/${OIDC_PROVIDER}"
-        },
-        "Action": "sts:AssumeRoleWithWebIdentity",
-        "Condition": {
-          "StringEquals": {
-            "${OIDC_PROVIDER}:sub": "system:serviceaccount:${ESO_SYSTEM_NAMESPACE}:${ESO_K8S_SERVICE_ACCOUNT_NAME}"
-          }
+  cat > trust.json <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::${AWS_ACCOUNT_ID}:oidc-provider/${OIDC_PROVIDER}"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "${OIDC_PROVIDER}:sub": "system:serviceaccount:${ESO_SYSTEM_NAMESPACE}:${ESO_K8S_SERVICE_ACCOUNT_NAME}"
         }
       }
-    ]
-  }
+    }
+  ]
+}
 EOF
-  echo "${TRUST_RELATIONSHIP}" > trust.json
   
   # Setting the required Environment Variables for IRSA (IAM Roles for Service Accounts).
   ESO_IAM_ROLE="eso-iam-role"
@@ -108,31 +107,30 @@ EOF
   SECRETS_MANAGER_ARN=$(terraform output -raw secrets_manager_arn)
   KMS_KEY_ARN=$(terraform output -raw kms_key_arn)
 
-  read -r -d '' SECRET_STORE_POLICY <<EOF
-  {
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Action": [
-          "secretsmanager:GetResourcePolicy",
-          "secretsmanager:GetSecretValue",
-          "secretsmanager:DescribeSecret",
-          "secretsmanager:ListSecretVersionIds"
-        ],
-        "Resource": "${SECRETS_MANAGER_ARN}"
-      },
-      {
-        "Effect": "Allow",
-        "Action": [
-          "kms:Decrypt"
-        ],
-        "Resource": "${KMS_KEY_ARN}"
-      }
-    ]
-  }
+  cat > policy.json <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetResourcePolicy",
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:ListSecretVersionIds"
+      ],
+      "Resource": "${SECRETS_MANAGER_ARN}"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "kms:Decrypt"
+      ],
+      "Resource": "${KMS_KEY_ARN}"
+    }
+  ]
+}
 EOF
-  echo "${SECRET_STORE_POLICY}" > policy.json
   
   ESO_IAM_POLICY="eso_secrets_manager_policy"
   aws iam create-policy --policy-name "${ESO_IAM_POLICY}" --policy-document file://policy.json 
@@ -158,5 +156,5 @@ EOF
 
 }
 
-install
-permissions
+install_eso
+permissions_eso
